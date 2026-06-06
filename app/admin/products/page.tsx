@@ -19,6 +19,8 @@ export default async function ProductsPage(){
             <tr>
               <th className="text-left p-2">Image</th>
               <th className="text-left p-2">Title</th>
+              <th className="text-left p-2">Brand</th>
+              <th className="text-left p-2">Category</th>
               <th className="text-left p-2">SKU</th>
               <th className="text-left p-2">Price</th>
               <th className="text-left p-2">Stock</th>
@@ -33,6 +35,8 @@ export default async function ProductsPage(){
                   {p.images[0] ? <img src={p.images[0].url} alt={p.images[0].altText || p.title} className="h-12 w-12 object-cover" /> : <div className="h-12 w-12 bg-slate-100" />}
                 </td>
                 <td className="p-2">{p.title}</td>
+                <td className="p-2">{p.brand?.name ?? '—'}</td>
+                <td className="p-2">{p.category?.name ?? '—'}</td>
                 <td className="p-2">{p.sku}</td>
                 <td className="p-2">${(p.price/100).toFixed(2)}</td>
                 <td className="p-2">{p.stock}</td>
