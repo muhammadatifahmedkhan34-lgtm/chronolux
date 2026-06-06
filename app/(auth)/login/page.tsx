@@ -15,20 +15,38 @@ export default function LoginPage(){
     e.preventDefault()
     setLoading(true); setError(null)
     try{
-      const res = await fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ email, password }) })
+      const res = await fetch('/api/auth/login', { method: 'POST', credentials: 'include', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ email, password }) })
       const data = await res.json()
+      console.log('Login response:', data)
       if(!res.ok){ setError(data?.error || 'Login failed'); setLoading(false); return }
-      if(data?.token){
-        saveToken(data.token)
-        // fetch user to detect role
-        const user = await fetchCurrentUser()
-        if(user?.role === 'ADMIN') router.push('/admin')
-        else router.push('/dashboard')
-      }else{
-        setError('No token returned')
+      if(!data?.token){ setError('No token returned'); setLoading(false); return }
+
+      saveToken(data.token)
+
+      // Prefer role from login response if present
+      const role = data.user?.role
+      console.log('Role from login response:', role)
+
+      if (role === 'ADMIN') {
+        window.location.href = '/admin'
+        return
       }
-    }catch(e:any){ setError(e?.message || 'Login failed') }
-    finally{ setLoading(false) }
+
+      if (role === 'CUSTOMER') {
+        window.location.href = '/dashboard'
+        return
+      }
+
+      // Fallback: fetch current user
+      const user = await fetchCurrentUser()
+      console.log('Current user after login:', user)
+      if(user?.role === 'ADMIN') { window.location.href = '/admin'; return }
+      if(user?.role === 'CUSTOMER') { window.location.href = '/dashboard'; return }
+
+      setError('Invalid user role')
+      setLoading(false)
+      return
+    }catch(e:any){ console.error('Login error', e); setError(e?.message || 'Login failed'); setLoading(false) }
   }
 
   return (

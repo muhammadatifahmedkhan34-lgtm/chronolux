@@ -4,6 +4,8 @@ import { loginSchema } from '@/lib/validations'
 import { comparePassword } from '@/lib/auth/hash'
 import { signJwt } from '@/lib/auth/jwt'
 
+const COOKIE_NAME = 'chrono_token'
+
 export async function POST(req: Request){
   const body = await req.json()
   const parse = loginSchema.safeParse(body)
@@ -20,5 +22,25 @@ export async function POST(req: Request){
   if(!user.isVerified) return NextResponse.json({ error: 'Email not verified' }, { status: 403 })
 
   const token = signJwt({ userId: user.id, role: user.role })
-  return NextResponse.json({ ok: true, token, user: { id: user.id, email: user.email, role: user.role } })
+
+  const response = NextResponse.json({
+    ok: true,
+    token,
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+    }
+  })
+
+  response.cookies.set(COOKIE_NAME, token, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: 60 * 60 * 24 * 7,
+  })
+
+  return response
 }

@@ -33,9 +33,10 @@ export function clearPendingEmail(){
 
 export async function fetchCurrentUser(){
   const token = getToken()
-  if(!token) return null
   try{
-    const res = await fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } })
+    const headers: Record<string,string> = {}
+    if(token) headers['Authorization'] = `Bearer ${token}`
+    const res = await fetch('/api/auth/me', { headers, credentials: 'include' })
     if(!res.ok) return null
     const data = await res.json()
     return data.user

@@ -19,8 +19,11 @@ export default function Navbar(){
   },[])
 
   const handleLogout = ()=>{
-    logout()
-    router.push('/login')
+    // clear server cookie too
+    fetch('/api/auth/logout', { method: 'POST' }).finally(()=>{
+      logout()
+      router.push('/login')
+    })
   }
 
   return (
