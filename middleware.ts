@@ -6,7 +6,6 @@ const COOKIE_NAME = 'chrono_token'
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
-  console.log('Middleware path:', pathname)
 
   // Allow public paths
   const PUBLIC_PATHS = ['/', '/login', '/register', '/verify', '/shop', '/about', '/api']
@@ -16,7 +15,6 @@ export async function middleware(req: NextRequest) {
 
   // get token from cookie
   const cookie = req.cookies.get(COOKIE_NAME)?.value || null
-  console.log('Middleware token exists:', !!cookie)
 
   // Protect admin routes
   if (pathname.startsWith('/admin')){

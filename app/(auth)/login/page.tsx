@@ -17,7 +17,6 @@ export default function LoginPage(){
     try{
       const res = await fetch('/api/auth/login', { method: 'POST', credentials: 'include', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ email, password }) })
       const data = await res.json()
-      console.log('Login response:', data)
       if(!res.ok){ setError(data?.error || 'Login failed'); setLoading(false); return }
       if(!data?.token){ setError('No token returned'); setLoading(false); return }
 
@@ -25,7 +24,6 @@ export default function LoginPage(){
 
       // Prefer role from login response if present
       const role = data.user?.role
-      console.log('Role from login response:', role)
 
       if (role === 'ADMIN') {
         window.location.href = '/admin'
@@ -39,7 +37,6 @@ export default function LoginPage(){
 
       // Fallback: fetch current user
       const user = await fetchCurrentUser()
-      console.log('Current user after login:', user)
       if(user?.role === 'ADMIN') { window.location.href = '/admin'; return }
       if(user?.role === 'CUSTOMER') { window.location.href = '/dashboard'; return }
 

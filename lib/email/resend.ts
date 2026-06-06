@@ -4,7 +4,6 @@ const resendApiKey = process.env.RESEND_API_KEY
 
 export async function sendOtpEmail(email: string, otp: string) {
   if (process.env.NODE_ENV !== 'production') {
-    console.log('DEV OTP EMAIL:', { to: email, otp })
     return { success: true }
   }
 
