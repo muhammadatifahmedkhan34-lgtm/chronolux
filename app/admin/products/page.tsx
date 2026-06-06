@@ -40,7 +40,13 @@ export default async function ProductsPage(){
                 <td className="p-2">{p.sku}</td>
                 <td className="p-2">${(p.price/100).toFixed(2)}</td>
                 <td className="p-2">{p.stock}</td>
-                <td className="p-2">{p.isPublished ? 'Yes' : 'No'}</td>
+                <td className="p-2">
+                  {p.isPublished ? (
+                    <span className="px-2 py-1 rounded text-sm bg-gold text-white">Published</span>
+                  ) : (
+                    <span className="px-2 py-1 rounded text-sm bg-slate-100 text-slate-600">Draft</span>
+                  )}
+                </td>
                 <td className="p-2">
                   <ProductActions productId={p.id} editHref={`/admin/products/${p.id}/edit`} productTitle={p.title} />
                 </td>

@@ -8,6 +8,7 @@ export default function NewProductPage(){
   const [price, setPrice] = useState('0')
   const [stock, setStock] = useState('0')
   const [files, setFiles] = useState<FileList | null>(null)
+  const [isPublished, setIsPublished] = useState(false)
   const [brands, setBrands] = useState<Array<any>>([])
   const [categories, setCategories] = useState<Array<any>>([])
   const [brandId, setBrandId] = useState('')
@@ -42,6 +43,7 @@ export default function NewProductPage(){
       fd.append('slug', slug)
       fd.append('price', String(Math.round(parseFloat(price) * 100)))
       fd.append('stock', stock)
+      fd.append('isPublished', isPublished ? '1' : '0')
       if(files){
         for (const f of Array.from(files)) fd.append('images', f)
       }
@@ -111,6 +113,10 @@ export default function NewProductPage(){
         </div>
         <div>
           <button className="btn btn-primary" type="submit">{loading ? 'Creating...' : 'Create Product'}</button>
+        </div>
+        <div className="flex items-center gap-2">
+          <input id="publish" type="checkbox" checked={isPublished} onChange={e=>setIsPublished(e.target.checked)} />
+          <label htmlFor="publish" className="text-sm text-slate-600">Publish product</label>
         </div>
       </form>
     </div>

@@ -8,6 +8,7 @@ export default function EditProductPage({ params }: any){
   const [data, setData] = useState<any>(null)
   const [files, setFiles] = useState<FileList | null>(null)
   const [replaceImages, setReplaceImages] = useState(false)
+  const [isPublished, setIsPublished] = useState(false)
   const [brands, setBrands] = useState<Array<any>>([])
   const [categories, setCategories] = useState<Array<any>>([])
   const [brandId, setBrandId] = useState('')
@@ -25,6 +26,7 @@ export default function EditProductPage({ params }: any){
         setData(json.product)
         setBrandId(json.product.brandId ? String(json.product.brandId) : '')
         setCategoryId(json.product.categoryId ? String(json.product.categoryId) : '')
+        setIsPublished(!!json.product.isPublished)
         // load brands/categories
         try{
           const b = await fetch('/api/admin/brands', { credentials: 'include' })
@@ -52,6 +54,7 @@ export default function EditProductPage({ params }: any){
       fd.append('slug', e.target.slug.value)
       fd.append('price', String(Math.round(parseFloat(e.target.price.value) * 100)))
       fd.append('stock', e.target.stock.value)
+      fd.append('isPublished', isPublished ? '1' : '0')
       fd.append('replaceImages', replaceImages ? '1' : '0')
       if(files){ for (const f of Array.from(files)) fd.append('images', f) }
       if(brandId) fd.append('brandId', brandId)
@@ -125,6 +128,11 @@ export default function EditProductPage({ params }: any){
         <div className="flex items-center gap-2">
           <input id="replace" type="checkbox" checked={replaceImages} onChange={e=>setReplaceImages(e.target.checked)} />
           <label htmlFor="replace" className="text-sm text-slate-600">Replace existing images</label>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <input id="publish" type="checkbox" checked={isPublished} onChange={e=>setIsPublished(e.target.checked)} />
+          <label htmlFor="publish" className="text-sm text-slate-600">Publish product</label>
         </div>
 
         <div>
