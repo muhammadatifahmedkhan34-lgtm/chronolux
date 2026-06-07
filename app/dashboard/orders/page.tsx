@@ -25,7 +25,13 @@ export default function OrdersPage(){
   return (
     <div className="container py-8">
       <h1 className="text-2xl font-serif">Your Orders</h1>
-      {orders.length === 0 ? <div className="mt-6 text-slate-600">You have no orders.</div> : (
+      <div className="mt-2 text-sm text-slate-600">Open order details to leave feedback on purchased watches.</div>
+      {orders.length === 0 ? (
+        <div className="mt-6">
+          <div className="text-slate-600">You have not placed any orders yet.</div>
+          <div className="mt-4"><a href="/shop" className="px-4 py-2 bg-dark-brown text-white rounded">Continue Shopping</a></div>
+        </div>
+      ) : (
         <div className="mt-6 overflow-x-auto">
           <table className="w-full table-auto border-collapse">
             <thead>

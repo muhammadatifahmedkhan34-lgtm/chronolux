@@ -196,6 +196,7 @@ model Review {
   createdAt           DateTime             @default(now())
   passwordResetTokens PasswordResetToken[]
   otpTokens           OtpToken[]
+  @@unique([userId, productId])
 }
 
 model Coupon {

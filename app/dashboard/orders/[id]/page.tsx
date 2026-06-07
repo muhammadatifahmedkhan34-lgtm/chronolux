@@ -37,6 +37,11 @@ export default function OrderDetailPage({ params }: any){
               <img src={it.product.images[0]?.url} className="w-16 h-16 object-cover rounded" />
               <div className="flex-1">{it.product.title}</div>
               <div className="font-semibold">{it.quantity} × ${(it.unitPrice/100).toFixed(2)}</div>
+              <div className="ml-4">
+                {it.product?.slug ? (
+                  <a href={`/products/${it.product.slug}#reviews`} className="px-3 py-1 bg-dark-brown text-white rounded text-sm">Leave Review</a>
+                ) : null}
+              </div>
             </div>
           ))}
         </div>

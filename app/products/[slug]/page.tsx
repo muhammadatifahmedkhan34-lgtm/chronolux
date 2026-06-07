@@ -7,6 +7,7 @@ import WishlistButton from '@/components/wishlist/WishlistButton'
 import Price from '@/components/product/Price'
 import StockBadge from '@/components/product/StockBadge'
 import PublicProductCard from '@/components/product/PublicProductCard'
+import Reviews from '@/components/product/Reviews'
 
 export async function generateMetadata({ params }: any) {
   const product = await getProductBySlug(params.slug)
@@ -60,6 +61,9 @@ export default async function ProductPage({ params }: { params: { slug: string }
         <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {related.map((r:any)=> <PublicProductCard key={r.id} product={r} />)}
         </div>
+      </section>
+      <section className="mt-12">
+        <Reviews productId={product.id} />
       </section>
     </div>
   )

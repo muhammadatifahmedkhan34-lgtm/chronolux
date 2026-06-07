@@ -50,3 +50,9 @@ export const couponValidateSchema = z.object({
   code: z.string().min(1),
   subtotal: z.number().int().nonnegative()
 })
+
+export const reviewCreateSchema = z.object({
+  productId: z.number().int().positive(),
+  rating: z.number().int().min(1).max(5),
+  comment: z.string().min(1).max(2000),
+})
