@@ -29,10 +29,35 @@ export async function POST(req: Request){
     }
 
     // compute totals
-    const subtotal = items.reduce((s, it) => s + (it.product.price * it.quantity), 0)
+    let subtotal = items.reduce((s, it) => s + (it.product.price * it.quantity), 0)
     const tax = 0
     const shipping = 0
-    const total = subtotal + tax + shipping
+    let discountAmount = 0
+    let couponId: number | null = null
+    let couponCode: string | null = null
+
+    // handle coupon if provided
+    if(parsed.data.couponCode){
+      const code = String(parsed.data.couponCode).trim().toUpperCase()
+      const coupon = await prisma.coupon.findUnique({ where: { code } })
+      if(!coupon) return NextResponse.json({ ok: false, message: 'Coupon not found' }, { status: 422 })
+      if(!coupon.isActive) return NextResponse.json({ ok: false, message: 'Coupon is inactive' }, { status: 422 })
+      if(coupon.expiresAt && coupon.expiresAt.getTime() < Date.now()) return NextResponse.json({ ok: false, message: 'Coupon has expired' }, { status: 422 })
+      if(coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) return NextResponse.json({ ok: false, message: 'Coupon usage limit exceeded' }, { status: 422 })
+      if(coupon.minimumOrderAmount && subtotal < coupon.minimumOrderAmount) return NextResponse.json({ ok: false, message: 'Minimum order amount not met' }, { status: 422 })
+
+      if(coupon.discountType === 'FIXED'){
+        discountAmount = coupon.discountValue
+      }else{
+        discountAmount = Math.floor(subtotal * (coupon.discountValue / 100))
+      }
+      if(discountAmount > subtotal) discountAmount = subtotal
+      couponId = coupon.id
+      couponCode = coupon.code
+      subtotal = subtotal // keep subtotal as items sum; discount applied to total below
+    }
+
+    const total = subtotal + tax + shipping - discountAmount
 
     // determine payment fields
     const paymentMethod = parsed.data.paymentMethod
@@ -63,6 +88,9 @@ export async function POST(req: Request){
         subtotal,
         tax,
         shipping,
+        discountAmount,
+        couponCode: couponCode,
+        couponId: couponId,
         total,
         paymentMethod: paymentMethod as any,
         paymentStatus: paymentStatus as any,
@@ -78,6 +106,11 @@ export async function POST(req: Request){
 
       // clear user's cart
       await tx.cartItem.deleteMany({ where: { userId: payload.userId } })
+
+      // increment coupon usedCount if used
+      if(couponId){
+        await tx.coupon.update({ where: { id: couponId }, data: { usedCount: { increment: 1 } } })
+      }
 
       return order
     })

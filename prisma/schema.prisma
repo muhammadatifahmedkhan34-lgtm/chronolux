@@ -32,6 +32,11 @@ enum PaymentMethod {
   DUMMY_CARD
 }
 
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
 model User {
   id                 Int                  @id @default(autoincrement())
   email              String               @unique
@@ -137,6 +142,10 @@ model Order {
   tax               Int
   shipping          Int
   total             Int
+  discountAmount    Int           @default(0)
+  couponCode        String?
+  couponId          Int?
+  coupon            Coupon?       @relation(fields: [couponId], references: [id])
   shippingAddress   Address?      @relation("OrderShippingAddress", fields: [shippingAddressId], references: [id])
   shippingAddressId Int?
   paymentMethod     PaymentMethod
@@ -195,8 +204,14 @@ model Coupon {
   description     String?
   discountPercent Int?
   discountAmount  Int?
+  discountType    DiscountType @default(PERCENTAGE)
+  discountValue   Int
+  minimumOrderAmount Int?
+  usageLimit      Int?
+  usedCount       Int       @default(0)
   expiresAt       DateTime?
   isActive        Boolean   @default(true)
+  orders          Order[]
   createdAt       DateTime  @default(now())
 }
 

@@ -10,6 +10,10 @@ export default function CheckoutPage(){
   const [address, setAddress] = useState<any>({ fullName: '', phone: '', addressLine1: '', addressLine2: '', city: '', state: '', postalCode: '', country: '' })
   const [paymentMethod, setPaymentMethod] = useState<'CASH_ON_DELIVERY'|'DUMMY_CARD'>('CASH_ON_DELIVERY')
   const [card, setCard] = useState<any>({ cardholderName: '', cardNumber: '', expiry: '', cvv: '' })
+  const [couponCode, setCouponCode] = useState<string>('')
+  const [couponApplying, setCouponApplying] = useState(false)
+  const [couponError, setCouponError] = useState<string | null>(null)
+  const [discountAmount, setDiscountAmount] = useState<number>(0)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const router = useRouter()
@@ -45,7 +49,7 @@ export default function CheckoutPage(){
       // simulate card processing delay on client
       if(paymentMethod === 'DUMMY_CARD') await new Promise(r => setTimeout(r, 1200))
 
-      const body: any = { paymentMethod, address, card: paymentMethod === 'DUMMY_CARD' ? { cardholderName: card.cardholderName } : undefined }
+      const body: any = { paymentMethod, address, card: paymentMethod === 'DUMMY_CARD' ? { cardholderName: card.cardholderName } : undefined, couponCode: couponCode || undefined }
       const res = await fetch('/api/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), credentials: 'include' })
       const text = await res.text(); const json = text ? JSON.parse(text) : null
       if(!res.ok){ if(res.status === 401) return window.location.href = '/login'; throw new Error(json?.message || 'Checkout failed') }
@@ -96,6 +100,23 @@ export default function CheckoutPage(){
         <aside>
           <h2 className="font-semibold">Order summary</h2>
           <div className="mt-3 bg-white p-4 rounded shadow">
+            <div className="mb-3">
+              <div className="flex gap-2">
+                <input placeholder="Coupon code" value={couponCode} onChange={e=>setCouponCode(e.target.value)} className="flex-1 border p-2 rounded" />
+                <button type="button" onClick={async ()=>{
+                    setCouponError(null); setCouponApplying(true)
+                    try{
+                      const res = await fetch('/api/coupons/validate', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ code: couponCode, subtotal }), credentials: 'include' })
+                      const text = await res.text(); const json = text ? JSON.parse(text) : null
+                      if(!res.ok) { setCouponError(json?.message || 'Invalid coupon'); setDiscountAmount(0); setCouponApplying(false); return }
+                      setDiscountAmount(json.discountAmount || 0)
+                    }catch(err:any){ setCouponError(err?.message || 'Failed to validate'); setDiscountAmount(0) }
+                    finally{ setCouponApplying(false) }
+                  }} className="px-3 py-2 bg-dark-brown text-white rounded">{couponApplying ? 'Applying...' : 'Apply'}</button>
+                <button type="button" onClick={()=>{ setCouponCode(''); setDiscountAmount(0); setCouponError(null) }} className="px-3 py-2 border rounded">Clear</button>
+              </div>
+              {couponError && <div className="text-sm text-red-600 mt-2">{couponError}</div>}
+            </div>
             {items.map(it=> (
               <div key={it.id} className="flex items-center gap-3 border-b py-2">
                 <img src={it.product.images[0]?.url} className="w-16 h-16 object-cover rounded" />
@@ -108,7 +129,9 @@ export default function CheckoutPage(){
             ))}
 
             <div className="mt-4 text-right">
-              <div className="font-semibold">Subtotal: ${(subtotal/100).toFixed(2)}</div>
+                <div className="font-semibold">Subtotal: ${(subtotal/100).toFixed(2)}</div>
+                {discountAmount > 0 && <div className="text-sm text-green-600">Discount: -${(discountAmount/100).toFixed(2)}</div>}
+                <div className="mt-2 font-semibold">Total: ${((subtotal - discountAmount)/100).toFixed(2)}</div>
               <div className="mt-4">
                 <button className="px-4 py-2 bg-dark-brown text-white rounded" type="submit" disabled={submitting}>{submitting ? 'Processing...' : (paymentMethod === 'DUMMY_CARD' ? 'Pay Now' : 'Place Order')}</button>
               </div>

@@ -33,4 +33,20 @@ export const checkoutSchema = z.object({
   paymentMethod: z.enum(['CASH_ON_DELIVERY','DUMMY_CARD']),
   address: addressSchema,
   card: dummyCardSchema.optional(),
+  couponCode: z.string().min(1).optional()
+})
+
+export const couponCreateSchema = z.object({
+  code: z.string().min(1),
+  discountType: z.enum(['PERCENTAGE','FIXED']),
+  discountValue: z.number().int().nonnegative(),
+  minimumOrderAmount: z.number().int().nonnegative().optional(),
+  usageLimit: z.number().int().nonnegative().optional(),
+  expiresAt: z.string().optional(),
+  isActive: z.boolean().optional(),
+})
+
+export const couponValidateSchema = z.object({
+  code: z.string().min(1),
+  subtotal: z.number().int().nonnegative()
 })
