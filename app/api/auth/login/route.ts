@@ -18,7 +18,8 @@ export async function POST(req: Request){
   const ok = await comparePassword(password, user.passwordHash)
   if(!ok) return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
 
-  if(user.isBlocked || user.isRemoved) return NextResponse.json({ error: 'Account disabled' }, { status: 403 })
+  if(user.isBlocked) return NextResponse.json({ error: 'Your account has been blocked. Please contact support.' }, { status: 403 })
+  if(user.isRemoved) return NextResponse.json({ error: 'This account has been removed.' }, { status: 403 })
   if(!user.isVerified) return NextResponse.json({ error: 'Email not verified' }, { status: 403 })
 
   const token = signJwt({ userId: user.id, role: user.role })
