@@ -3,6 +3,8 @@ import Image from 'next/image'
 import React from 'react'
 import Price from './Price'
 import StockBadge from './StockBadge'
+import AddToCartButton from '@/components/cart/AddToCartButton'
+import WishlistButton from '@/components/wishlist/WishlistButton'
 
 export default function PublicProductCard({ product }: any){
   const img = product?.images?.[0]?.url
@@ -28,6 +30,8 @@ export default function PublicProductCard({ product }: any){
       </div>
       <div className="mt-4 flex gap-2">
         <Link href={`/products/${product.slug}`} className="ml-auto px-3 py-2 bg-dark-brown text-white rounded">View Details</Link>
+        <AddToCartButton productId={product.id} max={product.stock} />
+        <WishlistButton productId={product.id} />
       </div>
     </div>
   )

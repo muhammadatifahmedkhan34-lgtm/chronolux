@@ -2,6 +2,8 @@ import React from 'react'
 import { notFound } from 'next/navigation'
 import { getProductBySlug, getRelatedProducts } from '@/lib/shop'
 import ProductGallery from '@/components/product/ProductGallery'
+import AddToCartButton from '@/components/cart/AddToCartButton'
+import WishlistButton from '@/components/wishlist/WishlistButton'
 import Price from '@/components/product/Price'
 import StockBadge from '@/components/product/StockBadge'
 import PublicProductCard from '@/components/product/PublicProductCard'
@@ -47,8 +49,8 @@ export default async function ProductPage({ params }: { params: { slug: string }
           </div>
 
           <div className="mt-6 flex gap-2">
-            <button disabled className="px-4 py-2 bg-dark-brown text-white rounded">Add to Cart</button>
-            <button className="px-4 py-2 border rounded">Wishlist</button>
+            <AddToCartButton productId={product.id} max={product.stock} />
+            <WishlistButton productId={product.id} />
           </div>
         </aside>
       </div>

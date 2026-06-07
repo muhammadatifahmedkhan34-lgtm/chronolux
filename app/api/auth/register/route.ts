@@ -29,5 +29,18 @@ export async function POST(req: Request) {
     }
   }catch(e){ console.error('resend error', e) }
 
-  return NextResponse.json({ ok: true, message: 'Registered. Verify your email.' })
+  // In development, log the OTP and include it in the response for convenience
+  if (process.env.NODE_ENV !== 'production') {
+    try{
+      console.log('====================================')
+      console.log('DEV OTP FOR:', email)
+      console.log('OTP:', code)
+      console.log('====================================')
+    }catch(e){ /* ignore */ }
+  }
+
+  const responseBody: any = { ok: true, message: 'Registered. Verify your email.' }
+  if (process.env.NODE_ENV !== 'production') responseBody.devOtp = code
+
+  return NextResponse.json(responseBody)
 }

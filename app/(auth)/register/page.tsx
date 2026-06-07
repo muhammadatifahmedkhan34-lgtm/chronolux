@@ -20,8 +20,9 @@ export default function RegisterPage(){
       const res = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ name, email, password }) })
       const data = await res.json()
       if(!res.ok){ setError(data?.error || 'Registration failed'); setLoading(false); return }
-      // save pending email and redirect to verify
+      // save pending email and dev OTP if present, then redirect to verify
       savePendingEmail(email)
+      try{ if (data?.devOtp) localStorage.setItem('chrono_dev_otp', data.devOtp) }catch{}
       router.push('/verify')
     }catch(e:any){
       setError(e?.message || 'Registration failed')
