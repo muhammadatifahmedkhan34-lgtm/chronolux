@@ -20,6 +20,7 @@ ChronoLux is a minimal e-commerce starter for a luxury watch store built with Ne
 - Tailwind CSS
 - Cloudinary for image hosting
 - Resend for transactional emails (optional)
+ - Nodemailer (SMTP) for transactional emails (Gmail App Password recommended for demo)
 
 ## Quick setup (local development)
 
@@ -74,6 +75,9 @@ Required variables (placeholders are provided in `.env.example`):
 - `JWT_SECRET` — a strong random secret used to sign auth tokens
 - `RESEND_API_KEY` — optional, API key for Resend
 - `RESEND_FROM_EMAIL` — optional, from address for emails
+ - `EMAIL_PROVIDER` — set to `smtp` to use Nodemailer SMTP
+ - `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` — SMTP configuration for Nodemailer (Gmail App Password example)
+ - `FORCE_EMAIL_SEND` — set to `true` in development to actually send emails
 - `CLOUDINARY_CLOUD_NAME` — Cloudinary cloud name for images
 - `CLOUDINARY_API_KEY` — Cloudinary API key
 - `CLOUDINARY_API_SECRET` — Cloudinary API secret

@@ -13,7 +13,7 @@ export async function GET(req: Request){
     if(!payload || (payload as any).role !== 'ADMIN') return NextResponse.json({ ok: false, message: 'Unauthorized' }, { status: 401 })
 
     const users = await prisma.user.findMany({
-      where: { role: 'CUSTOMER' },
+      where: { role: 'CUSTOMER', isRemoved: false },
       orderBy: { createdAt: 'desc' },
       select: { id: true, email: true, name: true, role: true, isVerified: true, isBlocked: true, isRemoved: true, createdAt: true, _count: { select: { orders: true } } }
     })

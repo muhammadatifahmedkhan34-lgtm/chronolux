@@ -49,17 +49,63 @@ export async function PATCH(req: Request, { params }: any){
 
     const body = await req.json()
     const action = body.action
-    const allowed = ['block','unblock','remove','restore']
+    const allowed = ['block','unblock','remove']
     if(!allowed.includes(action)) return NextResponse.json({ ok: false, message: 'Invalid action' }, { status: 422 })
 
-    let data: any = {}
-    if(action === 'block') data = { isBlocked: true }
-    if(action === 'unblock') data = { isBlocked: false }
-    if(action === 'remove') data = { isRemoved: true }
-    if(action === 'restore') data = { isRemoved: false }
+    // block/unblock are simple updates
+    if(action === 'block'){
+      const updated = await prisma.user.update({ where: { id }, data: { isBlocked: true }, select: { id:true, email:true, name:true, role:true, isVerified:true, isBlocked:true, isRemoved:true, createdAt:true } })
+      return NextResponse.json({ ok: true, user: updated })
+    }
+    if(action === 'unblock'){
+      const updated = await prisma.user.update({ where: { id }, data: { isBlocked: false }, select: { id:true, email:true, name:true, role:true, isVerified:true, isBlocked:true, isRemoved:true, createdAt:true } })
+      return NextResponse.json({ ok: true, user: updated })
+    }
 
-    const updated = await prisma.user.update({ where: { id }, data, select: { id:true, email:true, name:true, role:true, isVerified:true, isBlocked:true, isRemoved:true, createdAt:true } })
-    return NextResponse.json({ ok: true, user: updated })
+    // Permanent delete for 'remove'
+    if(action === 'remove'){
+      // Only allow deleting CUSTOMER users
+      if(target.role !== 'CUSTOMER') return NextResponse.json({ ok: false, message: 'Only customer accounts can be permanently deleted' }, { status: 403 })
+
+      console.log('[ADMIN DELETE] targetUserId:', id)
+      console.log('[ADMIN DELETE] action:', action)
+
+      try{
+        console.log('[ADMIN DELETE] starting transaction to delete user', id)
+        const result = await prisma.$transaction(async (tx) => {
+          // Disassociate orders: keep order history but remove user association and shipping address
+          await tx.order.updateMany({ where: { userId: id }, data: { userId: null, shippingAddressId: null } })
+
+          // Remove cart items
+          await tx.cartItem.deleteMany({ where: { userId: id } })
+
+          // Remove wishlist (and its relations)
+          await tx.wishlist.deleteMany({ where: { userId: id } })
+
+          // Remove reviews
+          await tx.review.deleteMany({ where: { userId: id } })
+
+          // Remove OTP and password reset tokens
+          await tx.otpToken.deleteMany({ where: { userId: id } })
+          await tx.passwordResetToken.deleteMany({ where: { userId: id } })
+
+          // Remove addresses
+          await tx.address.deleteMany({ where: { userId: id } })
+
+          // Finally delete the user
+          await tx.user.delete({ where: { id } })
+
+          return true
+        })
+
+        console.log('[ADMIN DELETE] user delete succeeded for id', id)
+        if(result) return NextResponse.json({ ok: true, message: 'User permanently deleted', deletedUserId: id })
+        return NextResponse.json({ ok: false, message: 'Failed to delete user' }, { status: 500 })
+      }catch(e:any){
+        console.error('[ADMIN DELETE] error deleting user:', e)
+        return NextResponse.json({ ok: false, message: 'Failed to permanently delete user', detail: e?.message || String(e) }, { status: 500 })
+      }
+    }
   }catch(error:any){
     console.error('Admin update user error:', error)
     return NextResponse.json({ ok: false, message: error?.message || 'Failed to update user' }, { status: 500 })

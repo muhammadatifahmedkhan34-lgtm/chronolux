@@ -30,15 +30,26 @@ export default function AdminUsersPage(){
   },[])
 
   async function performAction(uid:number, action:string){
-    if(!confirm(`Are you sure you want to ${action} this user?`)) return
+    const confirmMessage = action === 'remove' ? 'This will permanently delete this customer account and allow the email to be registered again. Continue?' : `Are you sure you want to ${action} this user?`
+    if(!confirm(confirmMessage)) return
     try{
+      console.log('[ADMIN UI] performAction userId:', uid)
+      const body = { action }
+      console.log('[ADMIN UI] request body:', body)
       const token = localStorage.getItem('chrono_token')
       const headers: Record<string,string> = {'Content-Type':'application/json'}
       if(token) headers['Authorization'] = `Bearer ${token}`
-      const res = await fetch(`/api/admin/users/${uid}`, { method: 'PATCH', headers, body: JSON.stringify({ action }) })
+      const res = await fetch(`/api/admin/users/${uid}`, { method: 'PATCH', headers, body: JSON.stringify(body), credentials: 'include' })
+      console.log('[ADMIN UI] response status:', res.status)
       const data = await res.json()
+      console.log('[ADMIN UI] response json:', data)
       if(!res.ok || !data?.ok) { alert(data?.message || 'Failed'); return }
-      setUsers(users.map(u=> u.id === uid ? data.user : u))
+      if(action === 'remove'){
+        // remove row from list
+        setUsers(users.filter(u=> u.id !== uid))
+      }else{
+        setUsers(users.map(u=> u.id === uid ? data.user : u))
+      }
     }catch(err:any){ alert(err?.message || 'Failed') }
   }
 
@@ -85,7 +96,7 @@ export default function AdminUsersPage(){
                   <div className="flex gap-2">
                     <Button onClick={()=>router.push(`/admin/users/${u.id}`)} className="text-sm px-2 py-1 text-blue-600" variant="ghost">View</Button>
                     {u.isBlocked ? <Button onClick={()=>performAction(u.id,'unblock')} className="text-sm px-2 py-1 text-green-600" variant="ghost">Unblock</Button> : <Button onClick={()=>performAction(u.id,'block')} className="text-sm px-2 py-1 text-red-600" variant="ghost">Block</Button>}
-                    {u.isRemoved ? <Button onClick={()=>performAction(u.id,'restore')} className="text-sm px-2 py-1 text-green-600" variant="ghost">Restore</Button> : <Button onClick={()=>performAction(u.id,'remove')} className="text-sm px-2 py-1 text-red-600" variant="ghost">Remove</Button>}
+                    {u.isRemoved ? <span className="text-sm px-2 py-1 text-slate-500">Removed</span> : <Button onClick={()=>performAction(u.id,'remove')} className="text-sm px-2 py-1 text-red-600" variant="ghost">Delete Permanently</Button>}
                   </div>
                 </td>
               </tr>

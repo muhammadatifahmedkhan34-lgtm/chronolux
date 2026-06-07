@@ -30,14 +30,25 @@ export default function AdminUserDetail(){
   },[id])
 
   async function performAction(action:string){
-    if(!confirm(`Are you sure you want to ${action} this user?`)) return
+    const confirmMessage = action === 'remove' ? 'This will permanently delete this customer account and allow the email to be registered again. Continue?' : `Are you sure you want to ${action} this user?`
+    if(!confirm(confirmMessage)) return
     try{
+      console.log('[ADMIN DETAIL UI] performAction userId:', id)
+      const body = { action }
+      console.log('[ADMIN DETAIL UI] request body:', body)
       const token = localStorage.getItem('chrono_token')
       const headers: Record<string,string> = {'Content-Type':'application/json'}
       if(token) headers['Authorization'] = `Bearer ${token}`
-      const res = await fetch(`/api/admin/users/${id}`, { method: 'PATCH', headers, body: JSON.stringify({ action }) })
+      const res = await fetch(`/api/admin/users/${id}`, { method: 'PATCH', headers, body: JSON.stringify(body), credentials: 'include' })
+      console.log('[ADMIN DETAIL UI] response status:', res.status)
       const d = await res.json()
+      console.log('[ADMIN DETAIL UI] response json:', d)
       if(!res.ok || !d?.ok){ alert(d?.message || 'Failed'); return }
+      if(action === 'remove'){
+        alert('User permanently deleted')
+        router.push('/admin/users')
+        return
+      }
       setData((prev: any) => ({ ...prev, user: d.user }))
       alert('User updated')
     }catch(err:any){ alert(err?.message || 'Failed') }
@@ -65,7 +76,7 @@ export default function AdminUserDetail(){
           <div>Verified: {u.isVerified ? 'Yes' : 'No'}</div>
           <div className="mt-3 flex gap-2">
             {u.isBlocked ? <button onClick={()=>performAction('unblock')} className="text-green-600">Unblock</button> : <button onClick={()=>performAction('block')} className="text-red-600">Block</button>}
-            {u.isRemoved ? <button onClick={()=>performAction('restore')} className="text-green-600">Restore</button> : <button onClick={()=>performAction('remove')} className="text-red-600">Remove</button>}
+            {u.isRemoved ? <span className="text-slate-500">Removed</span> : <button onClick={()=>performAction('remove')} className="text-red-600">Delete Permanently</button>}
           </div>
         </div>
 
