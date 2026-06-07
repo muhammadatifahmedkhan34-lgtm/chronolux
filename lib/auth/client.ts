@@ -16,6 +16,11 @@ export function removeToken(){
   localStorage.removeItem(TOKEN_KEY)
 }
 
+export function removeDevOtp(){
+  if(typeof window === 'undefined') return
+  try{ localStorage.removeItem('chrono_dev_otp') }catch{}
+}
+
 export function savePendingEmail(email: string){
   if(typeof window === 'undefined') return
   localStorage.setItem(PENDING_EMAIL_KEY, email)
@@ -48,4 +53,8 @@ export async function fetchCurrentUser(){
 
 export function logout(){
   removeToken()
+  clearPendingEmail()
+  removeDevOtp()
+  // clear any other legacy auth keys
+  try{ localStorage.removeItem('chrono_old_token') }catch{}
 }

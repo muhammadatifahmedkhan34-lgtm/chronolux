@@ -11,19 +11,29 @@ export default function Navbar(){
   const router = useRouter()
 
   useEffect(()=>{
-    const t = getToken()
-    if(!t) return
+    // Always probe server-side auth (cookie is authoritative). Do not rely solely on localStorage.
     fetchCurrentUser().then(u=>{
       if(u?.role) setUserRole(u.role)
+      else setUserRole(null)
     })
   },[])
 
-  const handleLogout = ()=>{
-    // clear server cookie too
-    fetch('/api/auth/logout', { method: 'POST' }).finally(()=>{
+  const handleLogout = async ()=>{
+    try{
+      const res = await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
+      // clear client state
       logout()
-      router.push('/login')
-    })
+      setUserRole(null)
+      // navigate to login
+      router.replace('/login')
+      // optional refresh to update server-side rendered UI
+      try{ router.refresh() }catch{}
+    }catch(e){
+      // always clear client state even if server call fails
+      logout()
+      setUserRole(null)
+      router.replace('/login')
+    }
   }
 
   return (
