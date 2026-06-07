@@ -66,6 +66,7 @@ export default function AdminIndex(){
       <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Link href="/admin/products" className="block text-center py-4 bg-gold text-white rounded-md shadow">Manage Products</Link>
         <Link href="/admin/orders" className="block text-center py-4 bg-dark-brown text-white rounded-md shadow">View Orders</Link>
+        <Link href="/admin/reports" className="block text-center py-4 bg-slate-800 text-white rounded-md shadow">Reports</Link>
         <Link href="/admin/users" className="block text-center py-4 border border-slate-200 rounded-md">Manage Users</Link>
       </div>
 
@@ -101,6 +102,20 @@ export default function AdminIndex(){
             </table>
           </div>
         )}
+      </div>
+      <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div className="p-4 bg-white rounded shadow">
+          <div className="text-sm text-slate-500">Pending Reviews</div>
+          <div className="mt-2 text-2xl font-semibold">{stats?.stats?.pendingReviewsCount ?? 0}</div>
+        </div>
+        <div className="p-4 bg-white rounded shadow">
+          <div className="text-sm text-slate-500">Active Coupons</div>
+          <div className="mt-2 text-2xl font-semibold">{stats?.stats?.activeCouponsCount ?? 0}</div>
+        </div>
+        <div className="p-4 bg-white rounded shadow">
+          <div className="text-sm text-slate-500">Low Stock</div>
+          <div className="mt-2 text-2xl font-semibold">{stats?.stats?.lowStockProducts ?? 0}</div>
+        </div>
       </div>
     </div>
   )
