@@ -8,9 +8,14 @@ export async function sendOtpEmail(email: string, otp: string) {
     return { success: true, skipped: true }
   }
 
-  const host = process.env.SMTP_HOST
-  const port = Number(process.env.SMTP_PORT || 465)
+  const host = process.env.SMTP_HOST || 'smtp.gmail.com'
+  const port = Number(process.env.SMTP_PORT || 587)
   const secure = process.env.SMTP_SECURE === 'true'
+  const requireTLS = process.env.SMTP_REQUIRE_TLS === 'true'
+  const connectionTimeout = Number(process.env.SMTP_CONNECTION_TIMEOUT || 60000)
+  const greetingTimeout = Number(process.env.SMTP_GREETING_TIMEOUT || 60000)
+  const socketTimeout = Number(process.env.SMTP_SOCKET_TIMEOUT || 60000)
+  const family = Number(process.env.SMTP_FAMILY || 4)
   const user = process.env.SMTP_USER
   const pass = process.env.SMTP_PASS
   const from = process.env.SMTP_FROM || process.env.SMTP_USER
@@ -20,12 +25,34 @@ export async function sendOtpEmail(email: string, otp: string) {
     return { success: false, provider: 'smtp', error: 'Email service not configured' }
   }
 
+  // Safe config logging (do not include secrets)
+  try{
+    console.log('SMTP config check', {
+      host,
+      port,
+      secure,
+      requireTLS,
+      connectionTimeout,
+      greetingTimeout,
+      socketTimeout,
+      family,
+      userExists: Boolean(process.env.SMTP_USER),
+      passExists: Boolean(process.env.SMTP_PASS),
+      fromExists: Boolean(process.env.SMTP_FROM)
+    })
+  }catch(e){ /* ignore logging failures */ }
+
   const transporter = nodemailer.createTransport({
     host,
     port,
     secure,
+    requireTLS,
+    connectionTimeout,
+    greetingTimeout,
+    socketTimeout,
+    family,
     auth: { user, pass }
-  })
+  } as any)
 
   const subject = 'Your ChronoLux verification code'
   const brandColor = '#b8860b'
@@ -56,6 +83,7 @@ export async function sendOtpEmail(email: string, otp: string) {
   const text = `ChronoLux verification code\n\nHello ${email},\n\nYour verification code is: ${otp}\n\nThis code expires soon. If you did not request this, ignore this email.\n\n-- ChronoLux`
 
   try {
+    // sendMail can throw; keep try/catch so failures don't crash app
     await transporter.sendMail({
       from,
       to: email,
@@ -65,8 +93,9 @@ export async function sendOtpEmail(email: string, otp: string) {
     })
     return { success: true, skipped: false, provider: 'smtp' }
   } catch (err:any) {
+    // do not log secrets or OTP; log safe error message
     console.error('SMTP OTP email failed:', err?.message || err)
-    return { success: false, skipped: false, provider: 'smtp', error: 'OTP email could not be sent' }
+    return { success: false, skipped: false, provider: 'smtp', error: err?.message || 'OTP email could not be sent' }
   }
 }
 
