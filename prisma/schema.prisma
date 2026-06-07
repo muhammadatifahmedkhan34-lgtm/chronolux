@@ -161,6 +161,8 @@ model Address {
   id         Int      @id @default(autoincrement())
   user       User?    @relation(fields: [userId], references: [id])
   userId     Int?
+  fullName   String?
+  phone      String?
   line1      String
   line2      String?
   city       String

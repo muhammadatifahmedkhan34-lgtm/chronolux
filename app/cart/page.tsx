@@ -38,7 +38,9 @@ export default function CartPage(){
           {items.map(it => <CartItemRow key={it.id} item={it} onUpdated={handleUpdated} onRemoved={handleRemoved} />)}
           <div className="text-right mt-4">
             <div className="font-semibold text-lg">Subtotal: ${(subtotal/100).toFixed(2)}</div>
-            <div className="text-sm text-slate-600">Checkout coming next</div>
+            <div className="mt-4 flex justify-end gap-2">
+              <a href="/checkout" className="px-4 py-2 bg-dark-brown text-white rounded">Proceed to Checkout</a>
+            </div>
           </div>
         </div>
       )}
