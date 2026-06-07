@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react'
 import { fetchCurrentUser } from '@/lib/auth/client'
 import { useRouter } from 'next/navigation'
+import Button from '@/components/ui/Button'
 
 export default function AdminReviewsPage(){
   const router = useRouter()
@@ -71,7 +72,7 @@ export default function AdminReviewsPage(){
                 <td className="p-3">{r.approved ? 'Yes' : 'No'}</td>
                 <td className="p-3">{new Date(r.createdAt).toLocaleString()}</td>
                 <td className="p-3">
-                  {r.approved ? <button onClick={()=>doAction(r.id,'unapprove')} className="text-sm text-yellow-600">Unapprove</button> : <button onClick={()=>doAction(r.id,'approve')} className="text-sm text-green-600">Approve</button>} · <button onClick={()=>del(r.id)} className="text-sm text-red-600">Delete</button>
+                  {r.approved ? <Button onClick={()=>doAction(r.id,'unapprove')} className="text-sm px-2 py-1 text-yellow-600" variant="ghost">Unapprove</Button> : <Button onClick={()=>doAction(r.id,'approve')} className="text-sm px-2 py-1 text-green-600" variant="ghost">Approve</Button>} · <Button onClick={()=>del(r.id)} className="text-sm px-2 py-1 text-red-600" variant="ghost">Delete</Button>
                 </td>
               </tr>
             ))}

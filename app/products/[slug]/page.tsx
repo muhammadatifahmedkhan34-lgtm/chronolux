@@ -18,11 +18,11 @@ export async function generateMetadata({ params }: any) {
   }
 }
 
-export default async function ProductPage({ params }: { params: { slug: string } }){
+export default async function ProductPage({ params }: any){
   const product = await getProductBySlug(params.slug)
   if (!product) notFound()
 
-  const related = await getRelatedProducts(product.id, product.categoryId)
+  const related = await getRelatedProducts(product.id!, product.categoryId ?? undefined)
 
   return (
     <div className="container py-12">

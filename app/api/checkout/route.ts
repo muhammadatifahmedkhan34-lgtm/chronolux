@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db/prisma'
+import { Prisma } from '@prisma/client'
 import { verifyJwt } from '@/lib/auth/jwt'
 import { checkoutSchema } from '@/lib/validations'
 
@@ -22,13 +23,16 @@ export async function POST(req: Request){
     const items = await prisma.cartItem.findMany({ where: { userId: payload.userId }, include: { product: true } })
     if(!items || items.length === 0) return NextResponse.json({ ok: false, message: 'Cart is empty' }, { status: 422 })
 
-    // validate products
+    // validate products and quantities
     for(const it of items){
       if(!it.product || !it.product.isPublished) return NextResponse.json({ ok: false, message: `Product ${it.product?.title || it.productId} not available` }, { status: 422 })
+      if(typeof it.quantity !== 'number' || !Number.isFinite(it.quantity) || it.quantity <= 0) return NextResponse.json({ ok: false, message: `Invalid quantity for ${it.product.title}` }, { status: 422 })
+      if(!Number.isInteger(it.quantity)) return NextResponse.json({ ok: false, message: `Quantity must be an integer for ${it.product.title}` }, { status: 422 })
+      if(it.quantity > 1000) return NextResponse.json({ ok: false, message: `Quantity too large for ${it.product.title}` }, { status: 422 })
       if(it.quantity > it.product.stock) return NextResponse.json({ ok: false, message: `Insufficient stock for ${it.product.title}` }, { status: 422 })
     }
 
-    // compute totals
+    // compute totals (server-side authoritative)
     let subtotal = items.reduce((s, it) => s + (it.product.price * it.quantity), 0)
     const tax = 0
     const shipping = 0
@@ -60,12 +64,44 @@ export async function POST(req: Request){
     const total = subtotal + tax + shipping - discountAmount
 
     // determine payment fields
+    // - For DUMMY_CARD we mark as PAID (fake provider) per project rules
+    // - For CASH_ON_DELIVERY we keep PENDING
     const paymentMethod = parsed.data.paymentMethod
-    const paymentStatus = paymentMethod === 'DUMMY_CARD' ? 'PAID' : 'PENDING'
+    let paymentStatus = 'PENDING'
+    if(paymentMethod === 'DUMMY_CARD') paymentStatus = 'PAID'
+    else paymentStatus = 'PENDING'
     const orderStatus = 'PLACED'
 
+    // Normalize optional idempotency key from client
+    let idempotencyKey: string | null = null
+    if(parsed.data.idempotencyKey){
+      const k = String(parsed.data.idempotencyKey || '').trim()
+      if(k.length === 0) idempotencyKey = null
+      else if(k.length > 128) return NextResponse.json({ ok: false, message: 'Invalid idempotencyKey' }, { status: 422 })
+      else idempotencyKey = k
+    }
+
+    // If idempotencyKey provided, check for an existing order for this user+key (durable idempotency)
+    if(idempotencyKey){
+      const existingByKey = await prisma.order.findFirst({ where: { userId: payload.userId, idempotencyKey } })
+      if(existingByKey) return NextResponse.json({ ok: true, orderId: existingByKey.id, orderNumber: existingByKey.orderNumber, duplicate: true })
+    }
+
+    // Temporary, non-durable duplicate-order safety guard (fallback only when no idempotencyKey):
+    // - This is NOT a replacement for the durable idempotency key.
+    // - Keep the window small and match on a few fields to reduce false positives.
+    // - Intentionally conservative: if you need robust idempotency, provide an idempotencyKey.
+    if(!idempotencyKey){
+      const recentWindowMs = 15 * 1000 // 15 seconds
+      const recentThreshold = new Date(Date.now() - recentWindowMs)
+      const existing = await prisma.order.findFirst({ where: { userId: payload.userId, total, couponCode: couponCode || null, paymentMethod: paymentMethod as any, placedAt: { gte: recentThreshold } } })
+      if(existing) return NextResponse.json({ ok: true, orderId: existing.id, orderNumber: existing.orderNumber, duplicate: true })
+    }
+
     // create order in transaction
-    const result = await prisma.$transaction(async (tx) => {
+    let result
+    try{
+      result = await prisma.$transaction(async (tx) => {
       // create shipping address
       const addr = await tx.address.create({ data: {
         userId: payload.userId,
@@ -91,6 +127,7 @@ export async function POST(req: Request){
         discountAmount,
         couponCode: couponCode,
         couponId: couponId,
+        idempotencyKey: idempotencyKey,
         total,
         paymentMethod: paymentMethod as any,
         paymentStatus: paymentStatus as any,
@@ -98,22 +135,44 @@ export async function POST(req: Request){
         shippingAddressId: addr.id,
       } })
 
-      // create order items and reduce stock
+      // create order items and reduce stock atomically per item (ensure stock >= qty at update time)
       for(const it of items){
         await tx.orderItem.create({ data: { orderId: order.id, productId: it.productId, unitPrice: it.product.price, quantity: it.quantity } })
-        await tx.product.update({ where: { id: it.productId }, data: { stock: { decrement: it.quantity } } })
+        const updated = await tx.product.updateMany({ where: { id: it.productId, stock: { gte: it.quantity } }, data: { stock: { decrement: it.quantity } } })
+        if(updated.count === 0){
+          throw new Error(`Insufficient stock for product ${it.product?.title || it.productId}`)
+        }
+        // record inventory log
+        await tx.inventoryLog.create({ data: { productId: it.productId, change: -it.quantity, reason: `Order ${order.orderNumber}` } })
       }
 
       // clear user's cart
       await tx.cartItem.deleteMany({ where: { userId: payload.userId } })
 
-      // increment coupon usedCount if used
+      // increment coupon usedCount if used (perform conditional update to avoid race)
       if(couponId){
-        await tx.coupon.update({ where: { id: couponId }, data: { usedCount: { increment: 1 } } })
+        const current = await tx.coupon.findUnique({ where: { id: couponId } })
+        if(!current) throw new Error('Coupon not found during apply')
+        if(current.usageLimit){
+          const updated = await tx.coupon.updateMany({ where: { id: couponId, usedCount: { lt: current.usageLimit } }, data: { usedCount: { increment: 1 } } })
+          if(updated.count === 0) throw new Error('Coupon usage limit exceeded')
+        }else{
+          await tx.coupon.update({ where: { id: couponId }, data: { usedCount: { increment: 1 } } })
+        }
       }
 
       return order
-    })
+        })
+      }catch(err:any){
+        // Handle unique constraint violation on idempotency key (another request created the order)
+        if(err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002' && idempotencyKey){
+          try{
+            const existing = await prisma.order.findFirst({ where: { userId: payload.userId, idempotencyKey } })
+            if(existing) return NextResponse.json({ ok: true, orderId: existing.id, orderNumber: existing.orderNumber, duplicate: true })
+          }catch(_){ /* fallthrough to generic error */ }
+        }
+        throw err
+      }
 
     // send order email in dev as log or via Resend if configured
     if (process.env.NODE_ENV !== 'production'){

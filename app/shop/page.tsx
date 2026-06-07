@@ -9,19 +9,24 @@ export const metadata = {
   description: 'Browse our curated selection of luxury timepieces.',
 }
 
-export default async function ShopPage({ searchParams }: { searchParams?: any }){
-  const params = searchParams || {}
-  const filters: any = {}
-  if (params.search) filters.search = params.search
-  if (params.brand) filters.brand = params.brand
-  if (params.category) filters.category = params.category
-  if (params.condition) filters.condition = params.condition
-  if (params.movement) filters.movement = params.movement
-  if (params.availability) filters.availability = params.availability
-  if (params.priceMin) filters.priceMin = Number(params.priceMin) * 100
-  if (params.priceMax) filters.priceMax = Number(params.priceMax) * 100
+type ShopPageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> }
 
-  const sort = params.sort || 'latest'
+export default async function ShopPage({ searchParams }: ShopPageProps){
+  const raw = (await searchParams) ?? {}
+  const getFirst = (v: string | string[] | undefined) => Array.isArray(v) ? v[0] : v
+  const params: Record<string, any> = {}
+  const filters: any = {}
+
+  if (getFirst(raw.search)) { params.search = String(getFirst(raw.search)); filters.search = params.search }
+  if (getFirst(raw.brand)) { params.brand = String(getFirst(raw.brand)); filters.brand = params.brand }
+  if (getFirst(raw.category)) { params.category = String(getFirst(raw.category)); filters.category = params.category }
+  if (getFirst(raw.condition)) { params.condition = String(getFirst(raw.condition)); filters.condition = params.condition }
+  if (getFirst(raw.movement)) { params.movement = String(getFirst(raw.movement)); filters.movement = params.movement }
+  if (getFirst(raw.availability)) { params.availability = String(getFirst(raw.availability)); filters.availability = params.availability }
+  if (getFirst(raw.priceMin)) { params.priceMin = String(getFirst(raw.priceMin)); filters.priceMin = Number(getFirst(raw.priceMin)) * 100 }
+  if (getFirst(raw.priceMax)) { params.priceMax = String(getFirst(raw.priceMax)); filters.priceMax = Number(getFirst(raw.priceMax)) * 100 }
+
+  const sort = String(getFirst(raw.sort) ?? 'latest')
 
   const [products, options] = await Promise.all([
     getPublishedProducts({ filters, sort }),
@@ -34,7 +39,7 @@ export default async function ShopPage({ searchParams }: { searchParams?: any })
 
       <div className="mt-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-1">
-          <ShopFilters filters={params} options={options} />
+          <ShopFilters filters={filters} options={options} />
         </div>
         <div className="lg:col-span-3">
           <ShopSort current={sort} />

@@ -1,9 +1,10 @@
-import jwt from 'jsonwebtoken'
+import * as jwt from 'jsonwebtoken'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'please_change_me'
+const JWT_SECRET: jwt.Secret = (process.env.JWT_SECRET || 'please_change_me') as jwt.Secret
 
-export function signJwt(payload: object, expiresIn = '7d'){
-  return jwt.sign(payload, JWT_SECRET, { expiresIn })
+export function signJwt(payload: string | object | Buffer, expiresIn = '7d'){
+  // Use casts to satisfy overloaded type signatures in @types/jsonwebtoken
+  return jwt.sign(payload as any, JWT_SECRET as any, { expiresIn } as any)
 }
 
 export function verifyJwt<T = any>(token: string): T | null{

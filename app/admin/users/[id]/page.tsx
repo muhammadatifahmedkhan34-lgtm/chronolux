@@ -23,7 +23,7 @@ export default function AdminUserDetail(){
         const res = await fetch(`/api/admin/users/${id}`, { headers, credentials: 'include' })
         const d = await res.json()
         if(!res.ok || !d?.ok){ setError(d?.message || 'Failed to load'); setLoading(false); return }
-        setData(d)
+          setData(d)
       }catch(err:any){ setError(err?.message || 'Failed to load') }
       setLoading(false)
     })
@@ -38,7 +38,7 @@ export default function AdminUserDetail(){
       const res = await fetch(`/api/admin/users/${id}`, { method: 'PATCH', headers, body: JSON.stringify({ action }) })
       const d = await res.json()
       if(!res.ok || !d?.ok){ alert(d?.message || 'Failed'); return }
-      setData(prev=> ({ ...prev, user: d.user }))
+      setData((prev: any) => ({ ...prev, user: d.user }))
       alert('User updated')
     }catch(err:any){ alert(err?.message || 'Failed') }
   }

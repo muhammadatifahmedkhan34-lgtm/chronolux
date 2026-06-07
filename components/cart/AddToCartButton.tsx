@@ -1,5 +1,6 @@
 "use client"
 import React, { useState } from 'react'
+import Button from '@/components/ui/Button'
 
 export default function AddToCartButton({ productId, max = 0 }: { productId: number, max?: number }){
   const [loading, setLoading] = useState(false)
@@ -22,8 +23,8 @@ export default function AddToCartButton({ productId, max = 0 }: { productId: num
   }
 
   return (
-    <button onClick={add} disabled={loading || (max === 0)} className={`px-3 py-2 rounded ${max===0 ? 'bg-slate-200 text-slate-500' : 'bg-dark-brown text-white'}`}>
+    <Button onClick={add} disabled={loading || (max === 0)} className={`text-sm ${max===0 ? 'opacity-60' : ''}`} variant={max===0 ? 'default' : 'ghost'}>
       {loading ? 'Adding...' : 'Add to Cart'}
-    </button>
+    </Button>
   )
 }

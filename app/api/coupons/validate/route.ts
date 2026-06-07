@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db/prisma'
 import { couponValidateSchema } from '@/lib/validations'
+import { verifyJwt } from '@/lib/auth/jwt'
+
+const COOKIE_NAME = 'chrono_token'
 
 export async function POST(req: Request){
   try{
@@ -8,8 +11,19 @@ export async function POST(req: Request){
     const parsed = couponValidateSchema.safeParse(body)
     if(!parsed.success) return NextResponse.json({ ok: false, message: 'Invalid input', issues: parsed.error.format() }, { status: 422 })
 
+    // authenticate user (coupon validation depends on user's cart totals)
+    const token = req.headers.get('authorization')?.replace('Bearer ', '') || (() => {
+      try{ const c = (req as any).cookies?.get?.(COOKIE_NAME)?.value; return c }catch{ return null }
+    })()
+    const payload: any = token ? verifyJwt(token as string) : null
+    if(!payload) return NextResponse.json({ ok: false, message: 'Unauthorized' }, { status: 401 })
+
     const code = parsed.data.code.trim().toUpperCase()
-    const subtotal = Number(parsed.data.subtotal)
+
+    // compute authoritative subtotal from user's cart
+    const items = await prisma.cartItem.findMany({ where: { userId: payload.userId }, include: { product: true } })
+    if(!items || items.length === 0) return NextResponse.json({ ok: false, message: 'Cart is empty' }, { status: 422 })
+    const subtotal = items.reduce((s, it) => s + (it.product.price * it.quantity), 0)
 
     const coupon = await prisma.coupon.findUnique({ where: { code } })
     if(!coupon) return NextResponse.json({ ok: false, message: 'Coupon not found' }, { status: 404 })

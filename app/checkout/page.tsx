@@ -1,8 +1,8 @@
 "use client"
 import React, { useEffect, useState } from 'react'
 import { addressSchema, dummyCardSchema } from '@/lib/validations'
-import { z } from 'zod'
 import { useRouter } from 'next/navigation'
+import Button from '@/components/ui/Button'
 
 export default function CheckoutPage(){
   const [items, setItems] = useState<any[]>([])
@@ -16,6 +16,7 @@ export default function CheckoutPage(){
   const [discountAmount, setDiscountAmount] = useState<number>(0)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [idempotencyKey, setIdempotencyKey] = useState<string>(() => (typeof crypto !== 'undefined' && (crypto as any).randomUUID ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`))
   const router = useRouter()
 
   const load = async ()=>{
@@ -38,10 +39,26 @@ export default function CheckoutPage(){
     setError(null)
     // validate address
     const a = addressSchema.safeParse(address)
-    if(!a.success){ setError('Invalid address'); return }
+    if(!a.success){
+      if(process.env.NODE_ENV !== 'production'){
+        const msgs = a.error.errors.map((er:any)=>er.message).filter(Boolean)
+        setError(msgs.join('; ') || 'Invalid address')
+      }else{
+        setError('Invalid address')
+      }
+      return
+    }
     if(paymentMethod === 'DUMMY_CARD'){
       const c = dummyCardSchema.safeParse(card)
-      if(!c.success){ setError('Invalid card details'); return }
+      if(!c.success){
+        if(process.env.NODE_ENV !== 'production'){
+          const msgs = c.error.errors.map((er:any)=>er.message).filter(Boolean)
+          setError(msgs.join('; ') || 'Invalid card details')
+        }else{
+          setError('Invalid card details')
+        }
+        return
+      }
     }
 
     setSubmitting(true)
@@ -49,11 +66,21 @@ export default function CheckoutPage(){
       // simulate card processing delay on client
       if(paymentMethod === 'DUMMY_CARD') await new Promise(r => setTimeout(r, 1200))
 
-      const body: any = { paymentMethod, address, card: paymentMethod === 'DUMMY_CARD' ? { cardholderName: card.cardholderName } : undefined, couponCode: couponCode || undefined }
+      const body: any = { paymentMethod, address, card: paymentMethod === 'DUMMY_CARD' ? { cardholderName: card.cardholderName } : undefined, couponCode: couponCode || undefined, idempotencyKey }
       const res = await fetch('/api/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), credentials: 'include' })
       const text = await res.text(); const json = text ? JSON.parse(text) : null
-      if(!res.ok){ if(res.status === 401) return window.location.href = '/login'; throw new Error(json?.message || 'Checkout failed') }
-      // redirect to order success
+      if(!res.ok){
+        if(res.status === 401) return window.location.href = '/login'
+        // show field-level server validation issues in development
+        if(res.status === 422 && json?.issues && process.env.NODE_ENV !== 'production'){
+          setError(JSON.stringify(json.issues))
+          setSubmitting(false)
+          return
+        }
+        throw new Error(json?.message || 'Checkout failed')
+      }
+      // on success, reset the idempotency key for future orders and redirect to order success
+      setIdempotencyKey((typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`)
       router.push(`/order-success/${json.orderId}`)
     }catch(err:any){ setError(err?.message || 'Checkout failed') }
     finally{ setSubmitting(false) }
@@ -89,7 +116,7 @@ export default function CheckoutPage(){
             <div className="mt-3 space-y-2">
               <input placeholder="Cardholder name" value={card.cardholderName} onChange={e=>setCard({...card, cardholderName: e.target.value})} className="w-full border p-2 rounded" />
               <input placeholder="Card number" value={card.cardNumber} onChange={e=>setCard({...card, cardNumber: e.target.value})} className="w-full border p-2 rounded" maxLength={16} />
-              <input placeholder="Expiry (MM/YY)" value={card.expiry} onChange={e=>setCard({...card, expiry: e.target.value})} className="w-full border p-2 rounded" />
+              <input placeholder="Expiry (MM/YY or MM/YYYY)" value={card.expiry} onChange={e=>setCard({...card, expiry: e.target.value})} className="w-full border p-2 rounded" />
               <input placeholder="CVV" value={card.cvv} onChange={e=>setCard({...card, cvv: e.target.value})} className="w-full border p-2 rounded" maxLength={3} />
             </div>
           )}
@@ -103,7 +130,7 @@ export default function CheckoutPage(){
             <div className="mb-3">
               <div className="flex gap-2">
                 <input placeholder="Coupon code" value={couponCode} onChange={e=>setCouponCode(e.target.value)} className="flex-1 border p-2 rounded" />
-                <button type="button" onClick={async ()=>{
+                <Button type="button" className="px-3 py-2" onClick={async ()=>{
                     setCouponError(null); setCouponApplying(true)
                     try{
                       const res = await fetch('/api/coupons/validate', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ code: couponCode, subtotal }), credentials: 'include' })
@@ -112,8 +139,8 @@ export default function CheckoutPage(){
                       setDiscountAmount(json.discountAmount || 0)
                     }catch(err:any){ setCouponError(err?.message || 'Failed to validate'); setDiscountAmount(0) }
                     finally{ setCouponApplying(false) }
-                  }} className="px-3 py-2 bg-dark-brown text-white rounded">{couponApplying ? 'Applying...' : 'Apply'}</button>
-                <button type="button" onClick={()=>{ setCouponCode(''); setDiscountAmount(0); setCouponError(null) }} className="px-3 py-2 border rounded">Clear</button>
+                  }}>{couponApplying ? 'Applying...' : 'Apply'}</Button>
+                <Button type="button" className="px-3 py-2" variant="ghost" onClick={()=>{ setCouponCode(''); setDiscountAmount(0); setCouponError(null) }}>Clear</Button>
               </div>
               {couponError && <div className="text-sm text-red-600 mt-2">{couponError}</div>}
             </div>
@@ -133,7 +160,7 @@ export default function CheckoutPage(){
                 {discountAmount > 0 && <div className="text-sm text-green-600">Discount: -${(discountAmount/100).toFixed(2)}</div>}
                 <div className="mt-2 font-semibold">Total: ${((subtotal - discountAmount)/100).toFixed(2)}</div>
               <div className="mt-4">
-                <button className="px-4 py-2 bg-dark-brown text-white rounded" type="submit" disabled={submitting}>{submitting ? 'Processing...' : (paymentMethod === 'DUMMY_CARD' ? 'Pay Now' : 'Place Order')}</button>
+                <Button className="px-4 py-2" type="submit" disabled={submitting} variant="ghost">{submitting ? 'Processing...' : (paymentMethod === 'DUMMY_CARD' ? 'Pay Now' : 'Place Order')}</Button>
               </div>
             </div>
           </div>

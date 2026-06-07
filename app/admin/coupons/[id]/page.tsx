@@ -1,6 +1,7 @@
 "use client"
 import React, { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
+import Button from '@/components/ui/Button'
 import { couponCreateSchema } from '@/lib/validations'
 
 export default function EditCoupon(){
@@ -66,7 +67,7 @@ export default function EditCoupon(){
           <label><input type="checkbox" checked={form.isActive} onChange={e=>setForm({...form, isActive: e.target.checked})} /> Active</label>
         </div>
         <div className="mt-3">
-          <button onClick={save} className="px-4 py-2 bg-gold text-white rounded">Save</button>
+          <Button onClick={save} className="px-4 py-2" variant="primary">Save</Button>
         </div>
       </div>
     </div>

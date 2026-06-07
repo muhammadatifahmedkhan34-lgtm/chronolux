@@ -1,5 +1,6 @@
 "use client"
 import React from 'react'
+import Button from '@/components/ui/Button'
 
 export default function ShopFilters({ filters = {}, options = {} }: any){
   const { search = '', brand = '', category = '', condition = '', movement = '', priceMin = '', priceMax = '', availability = '' } = filters
@@ -39,7 +40,7 @@ export default function ShopFilters({ filters = {}, options = {} }: any){
       </div>
 
       <div className="mt-3 flex gap-2">
-        <button type="submit" className="px-3 py-2 bg-dark-brown text-white rounded">Apply</button>
+        <Button type="submit" className="px-3 py-2" variant="ghost">Apply</Button>
         <a href="/shop" className="px-3 py-2 border rounded">Reset</a>
       </div>
     </form>

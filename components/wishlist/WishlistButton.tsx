@@ -1,5 +1,6 @@
 "use client"
 import React, { useEffect, useState } from 'react'
+import Button from '@/components/ui/Button'
 
 export default function WishlistButton({ productId }: { productId: number }){
   const [loading, setLoading] = useState(false)
@@ -35,8 +36,8 @@ export default function WishlistButton({ productId }: { productId: number }){
 
   if(inList === null) return null
   return (
-    <button onClick={toggle} disabled={loading} className={`px-2 py-1 rounded text-sm ${inList ? 'bg-gold text-white' : 'border'}`}>
+    <Button onClick={toggle} disabled={loading} className={`text-sm ${inList ? '' : 'border'}`} variant={inList ? 'primary' : 'default'}>
       {inList ? 'Wishlisted' : 'Add to Wishlist'}
-    </button>
+    </Button>
   )
 }

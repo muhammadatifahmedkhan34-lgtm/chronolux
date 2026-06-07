@@ -1,6 +1,7 @@
 "use client"
 import React, { useEffect, useState } from 'react'
 import { fetchCurrentUser } from '@/lib/auth/client'
+import Button from '@/components/ui/Button'
 
 export default function Reviews({ productId }:{ productId:number }){
   const [loading, setLoading] = useState(true)
@@ -103,7 +104,7 @@ export default function Reviews({ productId }:{ productId:number }){
                 <textarea placeholder="Write your review" value={comment} onChange={e=>setComment(e.target.value)} className="w-full border p-2 rounded h-28"></textarea>
                 {error && <div className="text-red-600 mt-2">{error}</div>}
                 <div className="mt-3 text-right">
-                  <button disabled={submitting} onClick={submit} className="px-4 py-2 bg-dark-brown text-white rounded">{submitting? 'Submitting...' : 'Submit Review'}</button>
+                  <Button disabled={submitting} onClick={submit} className="px-4 py-2" variant="ghost">{submitting? 'Submitting...' : 'Submit Review'}</Button>
                 </div>
               </div>
             )}

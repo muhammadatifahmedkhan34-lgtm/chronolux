@@ -1,6 +1,7 @@
 "use client"
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Button from '@/components/ui/Button'
 import { fetchCurrentUser } from '@/lib/auth/client'
 
 export default function AdminUsersPage(){
@@ -47,7 +48,7 @@ export default function AdminUsersPage(){
     <div className="container py-12">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-serif">Users</h1>
-        <button onClick={()=>router.push('/admin')} className="text-sm text-slate-600">Back to dashboard</button>
+        <Button onClick={()=>router.push('/admin')} className="text-sm text-slate-600" variant="ghost">Back to dashboard</Button>
       </div>
 
       {error && <div className="mt-4 text-red-600">{error}</div>}
@@ -82,9 +83,9 @@ export default function AdminUsersPage(){
                 <td className="p-3">${((u.totalSpent ?? 0)/100).toFixed(2)}</td>
                 <td className="p-3">
                   <div className="flex gap-2">
-                    <button onClick={()=>router.push(`/admin/users/${u.id}`)} className="text-blue-600">View</button>
-                    {u.isBlocked ? <button onClick={()=>performAction(u.id,'unblock')} className="text-green-600">Unblock</button> : <button onClick={()=>performAction(u.id,'block')} className="text-red-600">Block</button>}
-                    {u.isRemoved ? <button onClick={()=>performAction(u.id,'restore')} className="text-green-600">Restore</button> : <button onClick={()=>performAction(u.id,'remove')} className="text-red-600">Remove</button>}
+                    <Button onClick={()=>router.push(`/admin/users/${u.id}`)} className="text-sm px-2 py-1 text-blue-600" variant="ghost">View</Button>
+                    {u.isBlocked ? <Button onClick={()=>performAction(u.id,'unblock')} className="text-sm px-2 py-1 text-green-600" variant="ghost">Unblock</Button> : <Button onClick={()=>performAction(u.id,'block')} className="text-sm px-2 py-1 text-red-600" variant="ghost">Block</Button>}
+                    {u.isRemoved ? <Button onClick={()=>performAction(u.id,'restore')} className="text-sm px-2 py-1 text-green-600" variant="ghost">Restore</Button> : <Button onClick={()=>performAction(u.id,'remove')} className="text-sm px-2 py-1 text-red-600" variant="ghost">Remove</Button>}
                   </div>
                 </td>
               </tr>

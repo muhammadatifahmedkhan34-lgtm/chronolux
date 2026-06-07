@@ -23,17 +23,32 @@ export const addressSchema = z.object({
 })
 
 export const dummyCardSchema = z.object({
-  cardholderName: z.string().min(1),
-  cardNumber: z.string().regex(/^[0-9]{16}$/),
-  expiry: z.string().min(1),
-  cvv: z.string().regex(/^[0-9]{3}$/),
+  cardholderName: z.string().min(1, 'Cardholder name is required'),
+  cardNumber: z.string().regex(/^[0-9]{16}$/, 'Card number must be exactly 16 digits'),
+  expiry: z.string().refine((val) => {
+    if (typeof val !== 'string') return false
+    const m = val.match(/^(\d{2})\/(\d{2}|\d{4})$/)
+    if (!m) return false
+    const month = parseInt(m[1], 10)
+    let year = parseInt(m[2], 10)
+    if (m[2].length === 2) year += 2000
+    if (month < 1 || month > 12) return false
+    // card is valid through the end of the month. build a date representing
+    // the first day of the month after the expiry month and compare to now
+    const expiryEnd = new Date(year, month, 1)
+    return expiryEnd > new Date()
+  }, 'Expiry must be MM/YY or MM/YYYY, month 01-12, and not in the past'),
+  cvv: z.string().regex(/^[0-9]{3}$/, 'CVV must be exactly 3 digits'),
 })
 
 export const checkoutSchema = z.object({
   paymentMethod: z.enum(['CASH_ON_DELIVERY','DUMMY_CARD']),
   address: addressSchema,
-  card: dummyCardSchema.optional(),
-  couponCode: z.string().min(1).optional()
+  // server-side should not require or store sensitive card details.
+  // accept only an optional cardholder name for records (no PAN/CVV/expiry)
+  card: z.object({ cardholderName: z.string().min(1).optional() }).optional(),
+  couponCode: z.string().min(1).optional(),
+  idempotencyKey: z.string().min(1).max(128).optional()
 })
 
 export const couponCreateSchema = z.object({
@@ -48,7 +63,6 @@ export const couponCreateSchema = z.object({
 
 export const couponValidateSchema = z.object({
   code: z.string().min(1),
-  subtotal: z.number().int().nonnegative()
 })
 
 export const reviewCreateSchema = z.object({

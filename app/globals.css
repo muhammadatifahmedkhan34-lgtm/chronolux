@@ -33,3 +33,37 @@ body{
   margin-inline:auto;
   padding-inline:1rem;
 }
+
+/* Premium card */
+.card{
+  @apply bg-white rounded-lg shadow-lg p-4;
+  border: 1px solid rgba(62,47,36,0.06);
+}
+
+/* Buttons */
+.btn{ @apply inline-flex items-center justify-center font-medium rounded-md transition-shadow px-4 py-2 }
+.btn-primary{ background-color:var(--color-gold); color:white }
+.btn-primary:hover{ box-shadow: 0 6px 18px rgba(0,0,0,0.12) }
+.btn-ghost{ background:transparent; color:var(--color-dark-brown) }
+.btn-dark{ background-color:var(--color-dark-brown); color:white }
+
+/* Inputs */
+.input{ @apply w-full border rounded-md px-3 py-2 bg-white }
+.input:focus{ outline: none; box-shadow: 0 0 0 3px rgba(201,168,106,0.12); border-color: rgba(62,47,36,0.2) }
+
+/* Tables responsive wrapper */
+.table-responsive{ width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch }
+table{ width:100%; border-collapse:collapse }
+th, td{ padding:0.75rem; text-align:left }
+thead th{ background:#faf7f2 }
+tbody tr{ border-top:1px solid rgba(0,0,0,0.04) }
+
+/* Utility tweaks for premium spacing */
+.lead{ font-size:1.05rem; color:rgba(62,47,36,0.85) }
+
+@media (max-width: 640px){
+  .container{ padding-inline:0.75rem }
+  .card{ padding:0.75rem }
+  .text-3xl{ font-size:1.5rem }
+}
+

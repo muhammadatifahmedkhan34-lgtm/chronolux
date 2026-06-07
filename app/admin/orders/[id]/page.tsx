@@ -1,6 +1,7 @@
 "use client"
 import React, { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
+import Button from '@/components/ui/Button'
 import { fetchCurrentUser } from '@/lib/auth/client'
 
 export default function AdminOrderDetail(){
@@ -56,7 +57,7 @@ export default function AdminOrderDetail(){
     <div className="container py-12">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-serif">Order {order.orderNumber}</h1>
-        <button onClick={()=>router.push('/admin/orders')} className="text-sm text-slate-600">Back to orders</button>
+        <Button onClick={()=>router.push('/admin/orders')} className="text-sm text-slate-600" variant="ghost">Back to orders</Button>
       </div>
 
       {error && <div className="mt-4 text-red-600">{error}</div>}
@@ -90,7 +91,7 @@ export default function AdminOrderDetail(){
               <option value="CANCELLED">CANCELLED</option>
             </select>
             <div className="mt-3">
-              <button disabled={saving} onClick={saveStatus} className="px-4 py-2 bg-dark-brown text-white rounded">Save Status</button>
+              <Button disabled={saving} onClick={saveStatus} className="px-4 py-2" variant="ghost">Save Status</Button>
             </div>
           </div>
         </div>

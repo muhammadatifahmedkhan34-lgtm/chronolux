@@ -28,9 +28,9 @@ export default function Navbar(){
 
   return (
     <header className="border-b border-slate-200 bg-white">
-      <div className="container flex items-center justify-between py-4">
+      <div className="container flex items-center justify-between py-3 sm:py-4">
         <Link href="/" className="text-xl font-serif text-dark-brown">ChronoLux</Link>
-        <nav className="space-x-6">
+        <nav className="flex items-center gap-4 flex-wrap">
           <Link href="/shop" className="text-sm text-slate-700">Shop</Link>
           <Link href="/about" className="text-sm text-slate-700">About</Link>
           {!userRole && (

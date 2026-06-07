@@ -146,6 +146,7 @@ model Order {
   couponCode        String?
   couponId          Int?
   coupon            Coupon?       @relation(fields: [couponId], references: [id])
+  idempotencyKey    String?
   shippingAddress   Address?      @relation("OrderShippingAddress", fields: [shippingAddressId], references: [id])
   shippingAddressId Int?
   paymentMethod     PaymentMethod
@@ -153,7 +154,8 @@ model Order {
   orderStatus       OrderStatus   @default(PLACED)
   placedAt          DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
-}
+  @@unique([userId, idempotencyKey])
+ }
 
 model OrderItem {
   id        Int      @id @default(autoincrement())

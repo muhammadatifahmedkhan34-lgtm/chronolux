@@ -1,7 +1,7 @@
 "use client"
 import React, { useEffect, useState } from 'react'
 import Button from '../../../components/ui/Button'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { getPendingEmail, clearPendingEmail, saveToken } from '@/lib/auth/client'
 
 export default function VerifyPage(){
@@ -11,10 +11,8 @@ export default function VerifyPage(){
   const [error, setError] = useState<string | null>(null)
   const [devOtp, setDevOtp] = useState<string | null>(null)
   const router = useRouter()
-  const params = useSearchParams()
-
   useEffect(()=>{
-    const qEmail = params?.get('email')
+    const qEmail = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('email') : null
     const p = qEmail || getPendingEmail()
     if(p) setEmail(p)
     try{
@@ -23,7 +21,7 @@ export default function VerifyPage(){
         if(d) setDevOtp(d)
       }
     }catch(e){}
-  },[params])
+  },[])
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
