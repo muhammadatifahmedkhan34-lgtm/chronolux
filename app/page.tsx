@@ -12,7 +12,9 @@ export default function Home() {
             <p className="mt-6 max-w-xl text-slate-700">Discover a curated collection of premium luxury watches from iconic brands. Minimal design, editorial layouts, and an elevated shopping experience.</p>
           </div>
           <div>
+            
             <div className="h-80 bg-sands rounded-lg shadow-lg flex items-center justify-center">
+              
               <span className="text-coffee-brown">[Hero watch image placeholder]</span>
             </div>
           </div>

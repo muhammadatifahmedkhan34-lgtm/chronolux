@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db/prisma'
-import { registerSchema } from '@/lib/validations'
-import { hashPassword } from '@/lib/auth/hash'
 import { sendOtpEmail } from '@/lib/email/resend'
 
 function generateOtp() {
@@ -15,41 +13,21 @@ function emailMustBeSent() {
 export async function POST(req: Request) {
   try {
     const body = await req.json()
-    const parse = registerSchema.safeParse(body)
+    const email = String(body?.email || '').trim().toLowerCase()
 
-    if (!parse.success) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: parse.error.format() },
-        { status: 422 }
-      )
+    if (!email) {
+      return NextResponse.json({ error: 'Email is required' }, { status: 422 })
     }
 
-    const email = parse.data.email.trim().toLowerCase()
-    const { password, name } = parse.data
+    const user = await prisma.user.findFirst({ where: { email, isRemoved: false } })
 
-    const existing = await prisma.user.findFirst({ where: { email, isRemoved: false } })
-
-    if (existing?.isVerified) {
-      return NextResponse.json({ error: 'Email already registered' }, { status: 409 })
+    if (!user) {
+      return NextResponse.json({ error: 'No account found with this email' }, { status: 404 })
     }
 
-    const passwordHash = await hashPassword(password)
-
-    const user = existing
-      ? await prisma.user.update({
-          where: { id: existing.id },
-          data: {
-            passwordHash,
-            name,
-          },
-        })
-      : await prisma.user.create({
-          data: {
-            email,
-            passwordHash,
-            name,
-          },
-        })
+    if (user.isVerified) {
+      return NextResponse.json({ error: 'This email is already verified' }, { status: 409 })
+    }
 
     await prisma.otpToken.updateMany({
       where: {
@@ -81,7 +59,7 @@ export async function POST(req: Request) {
     if (mustSend && !sendResult.success) {
       return NextResponse.json(
         {
-          error: 'Account was created, but OTP email could not be sent. Please check SMTP settings or use resend OTP.',
+          error: 'OTP could not be sent. Please check SMTP settings.',
           email,
           emailSendAttempted: true,
           emailSent: false,
@@ -95,9 +73,7 @@ export async function POST(req: Request) {
     const responseBody: any = {
       ok: true,
       email,
-      message: existing
-        ? 'A new verification code has been generated. Please verify your email.'
-        : 'Registered. Verify your email.',
+      message: 'A new OTP has been sent.',
       emailSendAttempted: mustSend,
       emailSent: sendResult.success && !sendResult.skipped,
       emailSkipped: !!sendResult.skipped,
@@ -106,7 +82,7 @@ export async function POST(req: Request) {
 
     if (!mustSend) {
       console.log('====================================')
-      console.log('DEV OTP FOR:', email)
+      console.log('DEV RESEND OTP FOR:', email)
       console.log('OTP:', code)
       console.log('====================================')
       responseBody.devOtp = code
@@ -114,7 +90,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json(responseBody)
   } catch (err: any) {
-    console.error('Register error:', err?.message || err)
-    return NextResponse.json({ error: 'Registration failed' }, { status: 500 })
+    console.error('Resend OTP error:', err?.message || err)
+    return NextResponse.json({ error: 'Could not resend OTP' }, { status: 500 })
   }
 }

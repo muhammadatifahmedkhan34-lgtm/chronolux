@@ -6,42 +6,76 @@ import { signJwt } from '@/lib/auth/jwt'
 
 const COOKIE_NAME = 'chrono_token'
 
-export async function POST(req: Request){
-  const body = await req.json()
-  const parse = loginSchema.safeParse(body)
-  if(!parse.success) return NextResponse.json({ error: 'Invalid input' }, { status: 422 })
+export async function POST(req: Request) {
+  try {
+    const body = await req.json()
+    const parse = loginSchema.safeParse(body)
 
-  const { email, password } = parse.data
-  const user = await prisma.user.findUnique({ where: { email } })
-  if(!user) return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
-
-  const ok = await comparePassword(password, user.passwordHash)
-  if(!ok) return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
-
-  if(user.isBlocked) return NextResponse.json({ error: 'Your account has been blocked. Please contact support.' }, { status: 403 })
-  if(user.isRemoved) return NextResponse.json({ error: 'This account has been removed.' }, { status: 403 })
-  if(!user.isVerified) return NextResponse.json({ error: 'Email not verified' }, { status: 403 })
-
-  const token = signJwt({ userId: user.id, role: user.role })
-
-  const response = NextResponse.json({
-    ok: true,
-    token,
-    user: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
+    if (!parse.success) {
+      return NextResponse.json({ error: 'Invalid input' }, { status: 422 })
     }
-  })
 
-  response.cookies.set(COOKIE_NAME, token, {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-    path: '/',
-    maxAge: 60 * 60 * 24 * 7,
-  })
+    const email = parse.data.email.trim().toLowerCase()
+    const { password } = parse.data
 
-  return response
+    const user = await prisma.user.findUnique({ where: { email } })
+
+    if (!user) {
+      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
+    }
+
+    const ok = await comparePassword(password, user.passwordHash)
+
+    if (!ok) {
+      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
+    }
+
+    if (user.isBlocked) {
+      return NextResponse.json(
+        { error: 'Your account has been blocked. Please contact support.' },
+        { status: 403 }
+      )
+    }
+
+    if (user.isRemoved) {
+      return NextResponse.json({ error: 'This account has been removed.' }, { status: 403 })
+    }
+
+    if (!user.isVerified) {
+      return NextResponse.json(
+        {
+          error: 'Email not verified. Please verify your email first.',
+          requiresVerification: true,
+          email: user.email,
+        },
+        { status: 403 }
+      )
+    }
+
+    const token = signJwt({ userId: user.id, role: user.role })
+
+    const response = NextResponse.json({
+      ok: true,
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      },
+    })
+
+    response.cookies.set(COOKIE_NAME, token, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7,
+    })
+
+    return response
+  } catch (err: any) {
+    console.error('Login error:', err?.message || err)
+    return NextResponse.json({ error: 'Login failed' }, { status: 500 })
+  }
 }

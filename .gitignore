@@ -4,3 +4,9 @@ node_modules
 dev.db
 prisma/dev.db
 tsconfig.tsbuildinfo
+prisma/prod.db
+prisma/prod.db-journal
+prisma/dev.db
+prisma/dev.db-journal
+*.db
+*.db-journal
